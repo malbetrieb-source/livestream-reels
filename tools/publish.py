@@ -33,7 +33,7 @@ def main():
         "id": a.id, "url": a.url, "title": info.get("title", ""), "engine": info.get("engine", ""),
         "duration": info.get("duration"), "run_id": a.run_id, "run_url": a.run_url, "artifact": a.artifact,
         "voicenote": vn.read_text(encoding="utf-8") if vn and vn.is_file() else "",
-        "extra": a.extra, "model": a.model, "mode": a.mode, "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "clips": clips,
+        "extra": a.extra, "briefing": info.get("briefing", ""), "model": a.model, "mode": a.mode, "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "clips": clips,
     }
     (pub / "resultaat.json").write_text(json.dumps(res, ensure_ascii=False, indent=1))
     if (out / "transcript.json").exists():

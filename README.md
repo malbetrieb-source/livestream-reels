@@ -9,6 +9,8 @@ Link plakken, voicenote inspreken of bestand kiezen (bv. die van Remco), op *Maa
 
 **Eenmalig:** *Settings → Pages →* Source *Deploy from a branch*, branch `main`, map `/docs` → Save. Maak daarna in de app bij *Instellingen* een fine-grained token aan (alleen deze repo; Actions + Contents: Read and write).
 
+**Zonder Anthropic-sleutel:** op de resultaatpagina staat *Slimmer kiezen met Claude*: kopieer de opdracht, plak hem in een chat met Claude, plak het antwoord terug en klik *Overnemen* → *Opnieuw maken*.
+
 Hoe het werkt: de app zet de voicenote op een branch `reels/<aanvraag>`, start de workflow, en de workflow zet daar na afloop de previews (720p), captions en `resultaat.json` neer (de voicenote zelf verdwijnt dan van die branch). Oude aanvragen opruimen = de branch `reels/…` verwijderen.
 
 ## Zonder app (alleen GitHub)

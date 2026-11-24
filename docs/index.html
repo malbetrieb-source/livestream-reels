@@ -308,11 +308,58 @@ function viewResult(id,res){
    <button class="ghost" id="addBtn">+ Fragment toevoegen</button></div>
    ${res.engine==='offline'?'<div class="note small">De selectie is grof gekozen op trefwoorden. Controleer begin en eind, of zet een Anthropic-sleutel in de repo-secrets (ANTHROPIC_API_KEY).</div>':''}
    ${res.voicenote?`<details class="card"><summary>Voicenote (uitgeschreven)</summary><p>${esc(res.voicenote)}</p></details>`:''}
+   <details class="card" id="ai" ${res.engine==='claude'?'':'open'}><summary>Slimmer kiezen met Claude</summary>
+    <p class="small">1. Kopieer de opdracht (transcript + voicenote) en plak hem in een chat met Claude.<br>2. Plak het antwoord van Claude hieronder en klik op <b>Overnemen</b>. Daarna <b>Opnieuw maken</b>.</p>
+    <div class="row"><label class="small" for="aiN" style="margin:0">Aantal reels</label><input id="aiN" type="number" min="1" max="20" value="${Math.max(clips.length,8)}" style="width:90px"><button id="aiCopy">Kopieer opdracht voor Claude</button><span id="aiSt" class="small mut"></span></div>
+    <textarea id="aiOut" readonly hidden style="margin-top:10px;font-size:13px"></textarea>
+    <label for="aiIn">Antwoord van Claude</label><textarea id="aiIn" placeholder="Plak hier het antwoord (de lijst met fragmenten)"></textarea>
+    <div class="row" style="margin-top:10px"><button class="ghost" id="aiUse">Overnemen</button><span id="aiUseSt" class="small"></span></div>
+   </details>
    <div class="card" id="addBox" hidden><h2>Fragment toevoegen</h2><input id="q" placeholder="Zoek in het transcript…"><div class="tr" id="qtr"></div></div>
    <div class="reels" id="reels"></div>`;
   renderReels();
   $('#addBtn').onclick=async()=>{const box=$('#addBox');box.hidden=!box.hidden;if(!box.hidden){await loadTr();searchTr();$('#q').focus()}};
   $('#q')&&($('#q').oninput=searchTr);
+  $('#aiCopy').onclick=copyPrompt;$('#aiUse').onclick=usePaste;
+}
+async function copyPrompt(){
+  const st=$('#aiSt');st.textContent='Transcript laden…';const tr=await loadTr();
+  if(!tr.length){st.textContent='Geen transcript gevonden bij deze aanvraag.';return}
+  const n=+$('#aiN').value||8;
+  const brief=R.briefing||[R.voicenote&&('Voicenote van de klant (uitgeschreven):\n'+R.voicenote),R.extra&&('Extra wensen:\n'+R.extra)].filter(Boolean).join('\n\n');
+  const txt=`Je bent een ervaren social-video-editor voor Borgh, een B2B-merk in bevestigingsmiddelen en gereedschap.
+Hieronder staat het transcript van een YouTube-livestream (Nederlands, tijdcodes in seconden) en de briefing van de klant.
+
+Kies de ${n} beste fragmenten voor losse verticale reels (Instagram/TikTok/Shorts).
+Regels:
+- Elk fragment is 20 tot 60 seconden.
+- Op zichzelf te begrijpen: begin bij het begin van een zin of uitleg, stop na de pointe. Geen afgebroken zinnen.
+- Volg de briefing: elk onderwerp dat de klant noemt krijgt bij voorkeur minstens één fragment, belangrijkste eerst.
+- Voorkeur voor concrete tips, getallen, demonstraties, 'fout vs goed', en momenten met energie of humor.
+- Geen overlap.
+
+Antwoord met ALLEEN een JSON-array in één codeblok, zonder uitleg, per fragment:
+{"start": <sec>, "end": <sec>, "title": "<korte werktitel>", "hook": "<pakkende tekst in beeld, max 6 woorden>", "caption": "<social caption van 1-3 zinnen in de toon van een vakman, met 3-5 hashtags>"}
+
+BRIEFING:
+${brief||'(geen briefing — kies zelf de sterkste momenten)'}
+
+TRANSCRIPT:
+${tr.map(x=>`[${x.s.toFixed(1)}-${x.e.toFixed(1)}] ${x.t}`).join('\n')}`;
+  try{await navigator.clipboard.writeText(txt);st.textContent=`✓ Gekopieerd (${Math.round(txt.length/1000)}k tekens) — plak het in een chat met Claude`}
+  catch{const o=$('#aiOut');o.hidden=false;o.value=txt;o.select();st.textContent='Kopiëren lukte niet automatisch: selecteer de tekst hieronder en kopieer hem.'}
+}
+function usePaste(){
+  const t=$('#aiIn').value,st=$('#aiUseSt');let list=[];
+  try{
+    if(t.includes('[')&&t.includes('{')){list=JSON.parse(t.slice(t.indexOf('['),t.lastIndexOf(']')+1))}
+    else for(const line of t.split(/[\n;]/)){const m=line.match(/([\d:.,]+)\s*[-–]\s*([\d:.,]+)\s*(.*)/);if(m)list.push({start:parseT(m[1]),end:parseT(m[2]),title:m[3].trim(),hook:m[3].trim()})}
+  }catch(e){st.textContent='✗ Kan het antwoord niet lezen. Plak het hele antwoord van Claude, inclusief de [ en ].';return}
+  list=list.filter(c=>isFinite(+c.start)&&isFinite(+c.end)&&+c.end>+c.start);
+  if(!list.length){st.textContent='✗ Geen fragmenten gevonden in het antwoord.';return}
+  clips=list.map((c,i)=>({id:i+1,start:+c.start,end:+c.end,title:c.title||`Fragment ${i+1}`,hook:c.hook||'',caption:c.caption||'',mode:R.mode||'crop',offset:R.mode==='blur'?null:0.5,selected:true,isNew:true})).sort((a,b)=>a.start-b.start);
+  renderReels();st.textContent=`✓ ${clips.length} fragmenten overgenomen — controleer ze en klik onderin op Opnieuw maken.`;
+  $('#reels').scrollIntoView({behavior:'smooth'});
 }
 const key=c=>({start:+c.start,end:+c.end,title:c.title||'',hook:c.hook||'',caption:c.caption||'',mode:c.mode,offset:c.offset,selected:c.selected});
 async function loadTr(){if(!transcript){try{transcript=await rawJson('transcript.json','reels/'+R.id)}catch{transcript=[]}}return transcript}
