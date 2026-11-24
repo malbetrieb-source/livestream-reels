@@ -127,6 +127,7 @@ def main():
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
             f.write("\n".join(md) + "\n")
     print("\n".join(md), flush=True)
+    print("===TRANSCRIPT===\n" + full + "\n===EINDE TRANSCRIPT===", flush=True)
     print("Klaar:", len(rows), "reels", flush=True)
 
 
