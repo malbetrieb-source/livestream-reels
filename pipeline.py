@@ -331,9 +331,10 @@ def _ass_escape(t):
 
 def build_ass(words, clip_start, clip_end, hook, style):
     """Grote ondertitels, 3 woorden per regel, actieve woord in accentkleur."""
-    font = style.get("font", "Arial Black")
-    accent = _ass_color(style.get("accent", "#FFD400"))
-    size = int(style.get("size", 82))
+    font = style.get("font", "Borgh Sub")
+    accent = _ass_color(style.get("accent", "#FF690A"))
+    dark = _ass_color(style.get("dark", "#1C2123"))
+    size = int(style.get("size", 84))
     lines = [
         "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920", "WrapStyle: 0",
         "ScaledBorderAndShadow: yes", "",
@@ -341,8 +342,8 @@ def build_ass(words, clip_start, clip_end, hook, style):
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, "
         "Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, "
         "MarginR, MarginV, Encoding",
-        f"Style: Sub,{font},{size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,6,2,2,80,80,520,1",
-        f"Style: Hook,{font},{int(size*0.9)},&H00000000,&H00000000,{accent},{accent},-1,0,0,0,100,100,0,0,3,22,0,8,90,90,230,1",
+        f"Style: Sub,{font},{size},&H00FFFFFF,&H00FFFFFF,{dark},&H66000000,0,0,0,0,100,100,0,0,1,7,3,2,80,80,520,1",
+        f"Style: Hook,{font},{int(size*0.85)},&H00FFFFFF,&H00FFFFFF,{accent},{accent},0,0,0,0,100,100,1,0,3,26,0,8,90,90,230,1",
         "", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
     if hook:
@@ -387,7 +388,9 @@ def render_clip(src, clip, transcript, out_dir, style, logo=None):
         off = min(max(float(clip.get("offset", 0.5)), 0), 1)
         vf = f"[0:v]scale=-2:1920,crop=1080:1920:(iw-1080)*{off:.3f}:0[v0]"
     sub_path = str(ass_path).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
-    vf += f";[v0]ass='{sub_path}'[v1]"
+    fdir = Path(__file__).parent / "assets"
+    fd = str(fdir).replace("\\", "/").replace(":", "\\:")
+    vf += f";[v0]ass='{sub_path}':fontsdir='{fd}'[v1]"
     inputs = ["-ss", f"{s:.2f}", "-t", f"{e - s:.2f}", "-i", str(src)]
     last = "[v1]"
     if logo and Path(logo).exists():

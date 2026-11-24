@@ -36,7 +36,7 @@ on:
         default: small
       accentkleur:
         description: "Kleur van het actieve woord en de hook"
-        default: "#FFD400"
+        default: "#FF690A"
 
 jobs:
   reels:
@@ -64,7 +64,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-montserrat > /dev/null
-          pip install -q -r requirements.txt
+          pip install -q -r requirements.txt fonttools
+          python tools/make_font.py assets/BorghSub.ttf
 
       - name: Cache (download + transcript)
         uses: actions/cache@v4
