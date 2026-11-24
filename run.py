@@ -72,7 +72,8 @@ def main():
         (work / "meta.json").write_text(json.dumps(meta, ensure_ascii=False))
     elif (work / "meta.json").exists():
         meta = json.loads((work / "meta.json").read_text())
-    print("Video:", meta.get("title"), "|", f"{P.probe_duration(src)/60:.1f} min", flush=True)
+    print("Video:", meta.get("title"), "|", f"{P.probe_duration(src)/60:.1f} min", "|",
+          "x".join(map(str, P.probe_size(src))), flush=True)
 
     tfile = work / "transcript.json"
     if tfile.exists():
@@ -125,6 +126,7 @@ def main():
     if os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
             f.write("\n".join(md) + "\n")
+    print("\n".join(md), flush=True)
     print("Klaar:", len(rows), "reels", flush=True)
 
 
