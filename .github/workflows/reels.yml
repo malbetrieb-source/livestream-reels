@@ -1,8 +1,15 @@
 name: Maak reels van livestream
+run-name: ${{ inputs.aanvraag != '' && format('Reels · {0}', inputs.aanvraag) || 'Maak reels van livestream' }}
 
 on:
   workflow_dispatch:
     inputs:
+      aanvraag:
+        description: "Aanvraag-ID (vult de app zelf in; leeg laten bij handmatig starten)"
+        default: ""
+      voicenote:
+        description: "Bestandsnaam van de voicenote op branch reels/<aanvraag> (vult de app zelf in)"
+        default: ""
       youtube_link:
         description: "YouTube-link van de livestream"
         required: true
@@ -38,6 +45,10 @@ on:
         description: "Kleur van het actieve woord en de hook"
         default: "#FF690A"
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   reels:
     runs-on: ubuntu-latest
@@ -47,9 +58,14 @@ jobs:
 
       - name: Video-ID bepalen
         id: vid
+        env:
+          IN_URL: ${{ inputs.youtube_link }}
+          IN_AANVRAAG: ${{ inputs.aanvraag }}
         run: |
-          ID=$(echo "${{ inputs.youtube_link }}" | grep -oE '(v=|youtu\.be/|live/|shorts/)[A-Za-z0-9_-]{11}' | head -1 | grep -oE '[A-Za-z0-9_-]{11}$')
+          ID=$(echo "$IN_URL" | grep -oE '(v=|youtu\.be/|live/|shorts/)[A-Za-z0-9_-]{11}' | head -1 | grep -oE '[A-Za-z0-9_-]{11}$')
           echo "id=${ID:-onbekend}" >> "$GITHUB_OUTPUT"
+          A=$(echo "${IN_AANVRAAG:-run-${{ github.run_number }}}" | tr -cd 'A-Za-z0-9._-')
+          echo "aanvraag=$A" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
         with:
@@ -75,6 +91,25 @@ jobs:
             ~/.cache/huggingface
           key: werk-${{ steps.vid.outputs.id }}-${{ inputs.spraakmodel }}
 
+      - name: Voicenote uitschrijven
+        if: inputs.voicenote != ''
+        env:
+          BRANCH: reels/${{ steps.vid.outputs.aanvraag }}
+          VN: ${{ inputs.voicenote }}
+        run: |
+          git fetch -q --depth 1 origin "$BRANCH"
+          git show "FETCH_HEAD:$VN" > "voicenote_in.${VN##*.}"
+          python tools/voicenote.py "voicenote_in.${VN##*.}" voicenote.txt "${{ inputs.spraakmodel }}" "$(tr '\n' ',' < woordenlijst.txt)"
+
+      - name: Video downloaden en uitschrijven
+        env:
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+          IN_URL: ${{ inputs.youtube_link }}
+        run: |
+          if [ -n "$YT_COOKIES" ]; then printf '%s\n' "$YT_COOKIES" > cookies.txt; export YTDLP_COOKIES=cookies.txt; fi
+          python run.py --url "$IN_URL" --glossary "$(tr '\n' ',' < woordenlijst.txt)" \
+            --model "${{ inputs.spraakmodel }}" --work work --out output --prepare-only
+
       - name: Reels maken
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -89,7 +124,7 @@ jobs:
             --glossary "$(tr '\n' ',' < woordenlijst.txt)" \
             --n "${{ inputs.aantal_reels }}" --min-len "${{ inputs.min_lengte }}" --max-len "${{ inputs.max_lengte }}" \
             --model "${{ inputs.spraakmodel }}" --mode "${{ inputs.beeld }}" --accent "${{ inputs.accentkleur }}" \
-            --fragmenten "$IN_FRAG" --work work --out output
+            --fragmenten "$IN_FRAG" --voicenote-text voicenote.txt --work work --out output
 
       - name: Reels klaarzetten om te downloaden
         uses: actions/upload-artifact@v4
@@ -97,3 +132,21 @@ jobs:
           name: reels-${{ steps.vid.outputs.id }}-run${{ github.run_number }}
           path: output
           retention-days: 30
+
+      - name: Previews klaarzetten voor de app
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AANVRAAG: ${{ steps.vid.outputs.aanvraag }}
+          IN_URL: ${{ inputs.youtube_link }}
+          IN_EXTRA: ${{ inputs.extra_instructies }}
+          ARTIFACT: reels-${{ steps.vid.outputs.id }}-run${{ github.run_number }}
+        run: |
+          python tools/publish.py output pub --id "$AANVRAAG" --url "$IN_URL" --extra "$IN_EXTRA" \
+            --run-id "${{ github.run_id }}" --artifact "$ARTIFACT" --voicenote-text voicenote.txt \
+            --model "${{ inputs.spraakmodel }}" --mode "${{ inputs.beeld }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          cd pub
+          git init -q -b resultaat
+          git add -A
+          git -c user.name="reels-bot" -c user.email="reels-bot@users.noreply.github.com" commit -qm "Reels $AANVRAAG"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:refs/heads/reels/$AANVRAAG"

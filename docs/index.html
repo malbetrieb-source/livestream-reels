@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Livestream → Reels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kumbh+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: werkplaats-tool, direct en vakkundig
+   IDEA: een productiebon in de Borgh-werkplaats: link + voicenote erin, reels eruit
+   PICTURE: de reels zelf, als rij verticale schermen
+   COLOUR/TYPE: Borgh-oranje #FF690A, antraciet #1C2123, wit; Kumbh Sans
+   LAYOUT: één kolom op de telefoon, reels-raster op breed scherm, vaste actiebalk onderin */
+:root{color-scheme:light dark;--or:#FF690A;--an:#1C2123;--bg:light-dark(#f4f4f2,#121517);--card:light-dark(#fff,#1c2123);--ink:light-dark(#1C2123,#eef0f0);--mut:light-dark(#69716f,#9aa3a3);--line:light-dark(#dfe2e0,#2c3337);--soft:light-dark(#fff1e8,#2a1e16)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Kumbh Sans",system-ui,sans-serif;overflow-x:clip;padding-bottom:96px}
+a{color:inherit}
+header{background:var(--an);color:#fff;padding:14px max(4vw,16px);display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+header b{font-weight:800;font-size:20px;letter-spacing:-.01em}header b i{font-style:normal;color:var(--or)}
+nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+nav a{text-decoration:none;padding:8px 12px;border-radius:8px;font-weight:600;font-size:15px;color:#cfd4d4}
+nav a.on{background:var(--or);color:#fff}
+main{max-width:1240px;margin:0 auto;padding:24px max(4vw,16px)}
+h1{font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0 0 8px;font-weight:800;text-wrap:balance}
+h2{font-size:22px;margin:0 0 12px;font-weight:800}
+.mut{color:var(--mut)}.small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+label{display:block;font-weight:600;margin:14px 0 6px}
+input,textarea,select{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+textarea{min-height:84px;resize:vertical}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid color-mix(in srgb,var(--or) 45%,transparent);outline-offset:1px;border-color:var(--or)}
+button,.btn{font:inherit;font-weight:700;min-height:44px;padding:10px 18px;border-radius:10px;border:0;background:var(--or);color:#fff;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+button.ghost,.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+button.sm{min-height:36px;padding:6px 12px;font-size:14px}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0 16px}
+.big{font-size:18px;padding:14px 26px}
+.note{background:var(--soft);border-left:4px solid var(--or);padding:12px 14px;border-radius:8px;margin:12px 0}
+.err{background:light-dark(#fde8e8,#3a1c1c);border-left-color:#d33}
+details summary{cursor:pointer;font-weight:600;padding:6px 0}
+/* voortgang */
+.steps{list-style:none;padding:0;margin:0}
+.steps li{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.dot{width:22px;height:22px;border-radius:50%;flex:none;border:2px solid var(--line);display:grid;place-items:center;font-size:13px;color:#fff}
+.dot.run{border-color:var(--or);border-top-color:transparent;animation:spin 1s linear infinite}
+.dot.ok{background:#1d9a5b;border-color:#1d9a5b}.dot.fail{background:#d33;border-color:#d33}.dot.skip{opacity:.4}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.dot.run{animation:none}}
+/* reels */
+.reels{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:16px}
+.reel{background:var(--card);border:1.5px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.reel.changed{border-color:var(--or)}.reel.off{opacity:.55}
+.screen{aspect-ratio:9/16;background:var(--an);position:relative;max-height:520px;display:grid;place-items:center;overflow:hidden}
+.screen video{width:100%;height:100%;object-fit:contain;background:#000}
+.screen .play{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;padding:20px;text-align:center;color:#fff;background:linear-gradient(180deg,#2a3134,#1C2123);border:0;border-radius:0;font-weight:800}
+.screen .play .hook{background:var(--or);padding:8px 12px;border-radius:6px;font-size:20px;line-height:1.15}
+.screen .play .tri{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:26px}
+.body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:2px}
+.body label{margin:10px 0 4px;font-size:14px}
+.body input,.body textarea,.body select{padding:8px 10px;font-size:16px}
+.times{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nudge{display:flex;gap:4px;margin-top:4px}.nudge button{flex:1;min-height:34px;padding:4px;font-size:13px}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tr{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px;font-size:14px}
+.tr div{padding:6px 10px;border-bottom:1px solid var(--line);cursor:pointer;display:grid;grid-template-columns:4.2em 1fr;gap:8px}
+.tr div.in{background:var(--soft)}.tr div:hover{background:color-mix(in srgb,var(--or) 14%,transparent)}
+.tr .t{color:var(--mut);font-variant-numeric:tabular-nums}
+.pick{display:flex;gap:6px;padding:6px 10px;background:var(--bg)}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--an);color:#fff;padding:12px max(4vw,16px);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;z-index:6}
+.list a.item{display:flex;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);text-decoration:none;flex-wrap:wrap}
+.pill{font-size:13px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--line);white-space:nowrap}
+.pill.or{background:var(--or);color:#fff}.pill.gr{background:#1d9a5b;color:#fff}.pill.rd{background:#d33;color:#fff}
+.rec{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.recdot{width:12px;height:12px;border-radius:50%;background:#d33;display:inline-block;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3}}
+audio{width:100%;margin-top:10px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><b>Livestream <i>→</i> Reels</b>
+<nav><a href="#nieuw" data-v="nieuw">Nieuw</a><a href="#archief" data-v="archief">Alle aanvragen</a><a href="#instellingen" data-v="instellingen">Instellingen</a></nav></header>
+<main id="app"></main>
+<div class="bar" id="bar" hidden></div>
+
+<template id="t-nieuw">
+<h1>Van livestream naar reels</h1>
+<p class="mut">Plak de link, spreek de belangrijkste punten in (of zet Remco's voicenote erin) en de reels worden gemaakt. Duurt ongeveer 20–40 minuten bij een stream van een uur.</p>
+<form class="card" id="f">
+ <label for="url">YouTube-link van de livestream</label>
+ <input id="url" type="url" required placeholder="https://www.youtube.com/live/…" autocomplete="off">
+ <label>Voicenote met de belangrijkste punten <span class="mut small">(optioneel)</span></label>
+ <div class="rec">
+  <button type="button" class="ghost" id="recBtn">● Inspreken</button>
+  <button type="button" class="ghost" id="fileBtn">Bestand kiezen</button>
+  <input type="file" id="file" accept="audio/*,video/mp4,.opus,.ogg,.m4a,.mp3,.wav,.webm" hidden>
+  <span id="recState" class="mut small"></span>
+ </div>
+ <div id="vnBox" hidden><audio id="vnAudio" controls></audio><button type="button" class="ghost sm" id="vnDel">Voicenote weghalen</button></div>
+ <label for="extra">Extra wensen <span class="mut small">(optioneel)</span></label>
+ <textarea id="extra" placeholder="Bijv. vooral de korte tips, niet de intro. Winactie zeker meenemen."></textarea>
+ <details><summary>Meer opties</summary>
+  <div class="grid2">
+   <div><label for="n">Aantal reels</label><input id="n" type="number" min="1" max="20" value="8"></div>
+   <div><label for="minl">Min. lengte (sec)</label><input id="minl" type="number" min="5" value="20"></div>
+   <div><label for="maxl">Max. lengte (sec)</label><input id="maxl" type="number" min="10" value="60"></div>
+   <div><label for="beeld">Beeld</label><select id="beeld"><option value="crop">Bijsnijden naar 9:16</option><option value="blur">Heel beeld, vage achtergrond</option></select></div>
+   <div><label for="model">Spraakherkenning</label><select id="model"><option value="small">Snel (small)</option><option value="medium">Nauwkeuriger (medium)</option></select></div>
+   <div><label for="brief">Briefing-bestand</label><select id="brief"><option value="">Geen</option></select></div>
+  </div>
+ </details>
+ <div class="row" style="margin-top:20px"><button class="big" id="go">Maak reels</button><span id="goState" class="mut small"></span></div>
+</form>
+</template>
+
+<template id="t-instellingen">
+<h1>Instellingen</h1>
+<div class="card">
+ <h2>Toegang tot GitHub</h2>
+ <p>De app praat rechtstreeks met je repo. Daarvoor is eenmalig een sleutel (token) nodig, die alleen in deze browser wordt bewaard.</p>
+ <ol>
+  <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com → nieuwe fine-grained token</a>.</li>
+  <li>Naam: <i>reels-app</i>. Vervaldatum: bijvoorbeeld 1 jaar.</li>
+  <li>Repository access: <b>Only select repositories</b> → <i>livestream-reels</i>.</li>
+  <li>Permissions → Repository: <b>Actions: Read and write</b> en <b>Contents: Read and write</b>.</li>
+  <li>Klik <b>Generate token</b>, kopieer hem en plak hem hieronder.</li>
+ </ol>
+ <label for="tok">Token</label><input id="tok" type="password" placeholder="github_pat_…" autocomplete="off">
+ <label for="repo">Repository</label><input id="repo" placeholder="eigenaar/repo">
+ <div class="row" style="margin-top:16px"><button id="save">Opslaan en testen</button><button class="ghost" id="forget">Token vergeten</button><span id="saveState" class="small"></span></div>
+</div>
+</template>
+
+<script>
+{
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=t=>{t=Math.max(0,+t||0);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=(t%60).toFixed(1).padStart(4,'0');return h?`${h}:${String(m).padStart(2,'0')}:${s}`:`${m}:${s}`};
+const parseT=v=>String(v).trim().replace(',','.').split(':').map(Number).reduce((a,b)=>a*60+b,0);
+const store={get(k,d){try{return JSON.parse(localStorage.getItem('reels.'+k))??d}catch{return d}},set(k,v){try{localStorage.setItem('reels.'+k,JSON.stringify(v))}catch{}}};
+const WF='reels.yml';
+let cfg=store.get('cfg',{token:'',repo:'malbetrieb-source/livestream-reels'});
+let timer=null, blobs={};
+
+async function api(path,opt={}){
+  const r=await fetch('https://api.github.com/repos/'+cfg.repo+path,{method:opt.method||'GET',body:opt.body&&JSON.stringify(opt.body),
+    headers:{Authorization:'Bearer '+cfg.token,Accept:opt.raw?'application/vnd.github.raw':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+  if(r.status===204)return null;
+  if(!r.ok){let m='';try{m=(await r.json()).message}catch{}const e=new Error(`GitHub ${r.status}: ${m}`);e.status=r.status;throw e}
+  return opt.raw==='blob'?r.blob():opt.raw?r.json():r.json();
+}
+const rawJson=(file,ref)=>api(`/contents/${file}?ref=${encodeURIComponent(ref)}`,{raw:true});
+const ytId=u=>(String(u).match(/(?:v=|youtu\.be\/|live\/|shorts\/)([\w-]{11})/)||[])[1];
+const newId=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}-${Math.random().toString(36).slice(2,6)}`};
+function remember(id,info){const l=store.get('mine',{});l[id]={...(l[id]||{}),...info};store.set('mine',l)}
+
+async function dispatch(id,inputs){
+  const all={aanvraag:id,voicenote:'',youtube_link:'',briefing:'',extra_instructies:'',aantal_reels:'8',min_lengte:'20',max_lengte:'60',beeld:'crop',fragmenten:'',spraakmodel:'small',...inputs};
+  for(const k in all)all[k]=String(all[k]);
+  await api(`/actions/workflows/${WF}/dispatches`,{method:'POST',body:{ref:'main',inputs:all}});
+}
+
+/* ---------- routering ---------- */
+function route(){
+  clearInterval(timer);timer=null;$('#bar').hidden=true;
+  const h=location.hash.slice(1)||'nieuw';
+  $$('nav a').forEach(a=>a.classList.toggle('on',h===a.dataset.v||(h.startsWith('a-')&&a.dataset.v==='archief')));
+  if(!cfg.token&&h!=='instellingen'){location.hash='instellingen';return}
+  if(h==='instellingen')return viewSettings();
+  if(h==='archief')return viewArchive();
+  if(h.startsWith('a-'))return viewRequest(h.slice(2));
+  return viewNew();
+}
+addEventListener('hashchange',route);
+
+/* ---------- instellingen ---------- */
+function viewSettings(){
+  $('#app').replaceChildren($('#t-instellingen').content.cloneNode(true));
+  $('#tok').value=cfg.token;$('#repo').value=cfg.repo;
+  $('#save').onclick=async()=>{
+    cfg={token:$('#tok').value.trim(),repo:$('#repo').value.trim()};const st=$('#saveState');st.textContent='Testen…';
+    try{const r=await api('');await api(`/actions/workflows/${WF}`);store.set('cfg',cfg);st.textContent=`✓ Verbonden met ${r.full_name}`;setTimeout(()=>location.hash='nieuw',700)}
+    catch(e){st.textContent='✗ '+(e.status===404?'Repo of workflow niet gevonden — klopt de repo en heeft de token toegang?':e.status===401?'Token ongeldig':e.message)}
+  };
+  $('#forget').onclick=()=>{cfg.token='';store.set('cfg',cfg);$('#tok').value='';$('#saveState').textContent='Token verwijderd uit deze browser'};
+}
+
+/* ---------- nieuwe aanvraag ---------- */
+let vn=null, rec=null;
+function viewNew(){
+  $('#app').replaceChildren($('#t-nieuw').content.cloneNode(true));
+  const d=store.get('draft',{});for(const k of ['url','extra','n','minl','maxl','beeld','model'])if(d[k])$('#'+k).value=d[k];
+  $('#f').oninput=()=>{const o={};for(const k of ['url','extra','n','minl','maxl','beeld','model'])o[k]=$('#'+k).value;store.set('draft',o)};
+  api('/contents/briefings').then(l=>{for(const f of l.filter(f=>f.name.endsWith('.md'))){const o=document.createElement('option');o.value=f.path;o.textContent=f.name.replace(/\.md$/,'');$('#brief').append(o)}}).catch(()=>{});
+  showVn();
+  $('#fileBtn').onclick=()=>$('#file').click();
+  $('#file').onchange=e=>{const f=e.target.files[0];if(f){vn={blob:f,ext:(f.name.split('.').pop()||'m4a').toLowerCase()};showVn()}};
+  $('#vnDel').onclick=()=>{vn=null;showVn()};
+  $('#recBtn').onclick=toggleRec;
+  $('#f').onsubmit=submitNew;
+}
+function showVn(){
+  const box=$('#vnBox');if(!box)return;box.hidden=!vn;
+  if(vn){$('#vnAudio').src=URL.createObjectURL(vn.blob);$('#recState').textContent=`Voicenote klaar (${(vn.blob.size/1e6).toFixed(1)} MB)`}
+  else $('#recState').textContent='';
+}
+async function toggleRec(){
+  const b=$('#recBtn');
+  if(rec){rec.stop();return}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const mime=['audio/webm','audio/mp4','audio/ogg'].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m))||'';
+    rec=new MediaRecorder(stream,mime?{mimeType:mime}:{});const parts=[],t0=Date.now();
+    rec.ondataavailable=e=>parts.push(e.data);
+    const tick=setInterval(()=>$('#recState').innerHTML=`<span class="recdot"></span> Opnemen… ${fmt((Date.now()-t0)/1000).replace(/\.\d$/,'')}`,500);
+    rec.onstop=()=>{clearInterval(tick);stream.getTracks().forEach(t=>t.stop());const type=rec.mimeType||mime||'audio/webm';
+      vn={blob:new Blob(parts,{type}),ext:type.includes('mp4')?'m4a':type.includes('ogg')?'ogg':'webm'};rec=null;b.textContent='● Inspreken';showVn()};
+    rec.start(1000);b.textContent='■ Stop';
+  }catch(e){$('#recState').textContent='Microfoon niet beschikbaar — kies een bestand.'}
+}
+const b64=blob=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=no;r.readAsDataURL(blob)});
+async function submitNew(e){
+  e.preventDefault();const url=$('#url').value.trim(),st=$('#goState'),go=$('#go');
+  if(!ytId(url)){st.textContent='Dat lijkt geen YouTube-link.';return}
+  if(rec){st.textContent='Stop eerst de opname.';return}
+  go.disabled=true;const id=newId();
+  try{
+    let vname='';
+    if(vn){
+      st.textContent='Voicenote uploaden…';
+      const main=await api('/git/ref/heads/main');
+      await api('/git/refs',{method:'POST',body:{ref:'refs/heads/reels/'+id,sha:main.object.sha}});
+      vname='voicenote.'+vn.ext.replace(/[^a-z0-9]/g,'');
+      await api('/contents/'+vname,{method:'PUT',body:{message:'Voicenote '+id,content:await b64(vn.blob),branch:'reels/'+id}});
+    }
+    st.textContent='Workflow starten…';
+    const inp={youtube_link:url,voicenote:vname,briefing:$('#brief').value,extra_instructies:$('#extra').value.trim(),
+      aantal_reels:$('#n').value,min_lengte:$('#minl').value,max_lengte:$('#maxl').value,beeld:$('#beeld').value,spraakmodel:$('#model').value};
+    await dispatch(id,inp);
+    remember(id,{url,started:Date.now(),label:'Nieuwe stream'});
+    vn=null;store.set('draft',{});location.hash='a-'+id;
+  }catch(err){st.textContent='✗ '+err.message;go.disabled=false}
+}
+
+/* ---------- archief ---------- */
+async function viewArchive(){
+  const app=$('#app');app.innerHTML='<h1>Alle aanvragen</h1><div class="card list" id="l"><p class="mut">Laden…</p></div>';
+  try{
+    const [refs,runs]=await Promise.all([api('/git/matching-refs/heads/reels/').catch(()=>[]),api(`/actions/workflows/${WF}/runs?per_page=40`)]);
+    const mine=store.get('mine',{}),items={};
+    for(const r of refs){const id=r.ref.replace('refs/heads/reels/','');items[id]={id,done:false}}
+    for(const r of runs.workflow_runs){const m=r.display_title.match(/^Reels · (.+)$/);if(!m)continue;const it=items[m[1]]||(items[m[1]]={id:m[1]});if(!it.run)it.run=r}
+    for(const id in mine)items[id]=items[id]||{id};
+    const list=Object.values(items).sort((a,b)=>b.id.localeCompare(a.id));
+    if(!list.length){$('#l').innerHTML='<p class="mut">Nog geen aanvragen. <a href="#nieuw">Maak de eerste.</a></p>';return}
+    $('#l').innerHTML=list.map(it=>{const r=it.run,s=!r?'':r.status!=='completed'?'<span class="pill or">Bezig</span>':r.conclusion==='success'?'<span class="pill gr">Klaar</span>':'<span class="pill rd">Mislukt</span>';
+      return `<a class="item" href="#a-${esc(it.id)}"><span><b data-t="${esc(it.id)}">${esc(mine[it.id]?.title||mine[it.id]?.label||it.id)}</b><br><span class="mut small">${esc(it.id)}</span></span>${s}</a>`}).join('');
+    for(const it of list.slice(0,25))if(!mine[it.id]?.title&&refs.some(r=>r.ref.endsWith('/'+it.id)))
+      rawJson('resultaat.json','reels/'+it.id).then(res=>{const el=$(`[data-t="${CSS.escape(it.id)}"]`);if(el&&res.title){el.textContent=res.title;remember(it.id,{title:res.title})}}).catch(()=>{});
+  }catch(e){$('#l').innerHTML=`<p class="note err">${esc(e.message)}</p>`}
+}
+
+/* ---------- één aanvraag: voortgang of resultaat ---------- */
+const STEPS=['Programma\'s installeren','Cache (download + transcript)','Voicenote uitschrijven','Video downloaden en uitschrijven','Reels maken','Reels klaarzetten om te downloaden','Previews klaarzetten voor de app'];
+async function viewRequest(id){
+  const app=$('#app');app.innerHTML=`<p class="mut">Laden…</p>`;
+  try{const res=await rawJson('resultaat.json','reels/'+id);return viewResult(id,res)}catch(e){if(e.status!==404){app.innerHTML=`<p class="note err">${esc(e.message)}</p>`;return}}
+  app.innerHTML=`<h1>Reels worden gemaakt</h1><p class="mut">Aanvraag <span class="num">${esc(id)}</span>. Je kunt deze pagina sluiten; hij staat onder <a href="#archief">Alle aanvragen</a>.</p>
+   <div class="card"><div class="row" style="justify-content:space-between"><h2 id="st">Wachten tot GitHub start…</h2><span class="mut num" id="el"></span></div><ul class="steps" id="steps"></ul><p id="lk" class="small"></p></div>`;
+  let runId=null;
+  const poll=async()=>{
+    if(location.hash!=='#a-'+id)return;
+    try{
+      if(!runId){const runs=await api(`/actions/workflows/${WF}/runs?per_page=30`);const r=runs.workflow_runs.find(r=>r.display_title==='Reels · '+id);if(!r){
+        const t=store.get('mine',{})[id]?.started;if(t&&Date.now()-t>180000)$('#st').textContent='Run niet gevonden — is de workflow gestart?';return}runId=r.id}
+      const [run,jobs]=await Promise.all([api('/actions/runs/'+runId),api(`/actions/runs/${runId}/jobs`)]);
+      const steps=(jobs.jobs[0]?.steps||[]).filter(s=>STEPS.includes(s.name));
+      $('#steps').innerHTML=steps.map(s=>{const c=s.status!=='completed'?(s.status==='in_progress'?'run':''):s.conclusion==='success'?'ok':s.conclusion==='skipped'?'skip':'fail';
+        const icon=c==='ok'?'✓':c==='fail'?'!':'';const dur=s.started_at?Math.round(((s.completed_at?new Date(s.completed_at):Date.now())-new Date(s.started_at))/1000):null;
+        return `<li><span class="dot ${c}">${icon}</span><span style="flex:1">${esc(s.name==='Cache (download + transcript)'?'Eerder werk ophalen':s.name)}${c==='skip'?' <span class="mut small">(overgeslagen)</span>':''}</span><span class="mut num small">${dur!=null&&c!=='skip'?fmt(dur).replace(/\.\d$/,''):''}</span></li>`}).join('')||'<li class="mut">In de wachtrij…</li>';
+      const t0=new Date(run.run_started_at||run.created_at);$('#el').textContent=fmt((Date.now()-t0)/1000).replace(/\.\d$/,'');
+      $('#lk').innerHTML=`<a href="${esc(run.html_url)}" target="_blank" rel="noopener">Bekijk de run op GitHub</a>`;
+      if(run.status==='completed'){
+        clearInterval(timer);
+        if(run.conclusion==='success'){$('#st').textContent='Klaar! Reels laden…';setTimeout(()=>viewRequest(id),1500)}
+        else{$('#st').textContent='Er ging iets mis';$('#lk').insertAdjacentHTML('beforebegin',`<div class="note err">De run is ${esc(run.conclusion)}. Open de run op GitHub en klik op de rode stap voor de foutmelding. Vaak helpt het om opnieuw te starten.</div>`)}
+      }else $('#st').textContent=run.status==='queued'?'In de wachtrij':'Bezig…';
+    }catch(e){$('#st').textContent='Verbinding mislukt, opnieuw proberen…'}
+  };
+  poll();timer=setInterval(poll,8000);
+}
+
+/* ---------- resultaat + bijstellen ---------- */
+let R=null, clips=[], orig='', transcript=null;
+const yt=(u,t)=>{const v=ytId(u);return v?`https://youtu.be/${v}?t=${Math.floor(t)}`:u};
+const OFF={0.15:'Bijsnijden links',0.5:'Bijsnijden midden',0.85:'Bijsnijden rechts'};
+function viewResult(id,res){
+  R={...res,id};remember(id,{title:res.title});
+  clips=res.clips.map(c=>({...c,selected:true,offset:c.mode==='blur'?null:(c.offset??0.5)}));orig=JSON.stringify(clips.map(key));
+  const eng={claude:'Gekozen door Claude',offline:'Gekozen op trefwoorden — zet een ANTHROPIC_API_KEY in de repo voor een slimmere keuze',handmatig:'Zelf gekozen / bijgesteld'}[res.engine]||'';
+  $('#app').innerHTML=`<h1>${esc(res.title||'Reels')}</h1>
+   <p class="mut">${clips.length} reels · <a href="${esc(res.url)}" target="_blank" rel="noopener">livestream openen</a> · ${esc(eng)}</p>
+   <div class="row" style="margin-bottom:16px"><a class="btn" href="${esc(res.run_url)}#artifacts" target="_blank" rel="noopener">Alle reels in volle kwaliteit (zip)</a>
+   <button class="ghost" id="addBtn">+ Fragment toevoegen</button></div>
+   ${res.engine==='offline'?'<div class="note small">De selectie is grof gekozen op trefwoorden. Controleer begin en eind, of zet een Anthropic-sleutel in de repo-secrets (ANTHROPIC_API_KEY).</div>':''}
+   ${res.voicenote?`<details class="card"><summary>Voicenote (uitgeschreven)</summary><p>${esc(res.voicenote)}</p></details>`:''}
+   <div class="card" id="addBox" hidden><h2>Fragment toevoegen</h2><input id="q" placeholder="Zoek in het transcript…"><div class="tr" id="qtr"></div></div>
+   <div class="reels" id="reels"></div>`;
+  renderReels();
+  $('#addBtn').onclick=async()=>{const box=$('#addBox');box.hidden=!box.hidden;if(!box.hidden){await loadTr();searchTr();$('#q').focus()}};
+  $('#q')&&($('#q').oninput=searchTr);
+}
+const key=c=>({start:+c.start,end:+c.end,title:c.title||'',hook:c.hook||'',caption:c.caption||'',mode:c.mode,offset:c.offset,selected:c.selected});
+async function loadTr(){if(!transcript){try{transcript=await rawJson('transcript.json','reels/'+R.id)}catch{transcript=[]}}return transcript}
+function searchTr(){
+  const q=$('#q').value.trim().toLowerCase(),hits=(transcript||[]).filter(s=>!q||s.t.toLowerCase().includes(q)).slice(0,80);
+  $('#qtr').innerHTML=hits.map(s=>`<div data-s="${s.s}"><span class="t">${fmt(s.s).replace(/\.\d$/,'')}</span><span>${esc(s.t)}</span></div>`).join('')||'<div class="mut">Niets gevonden</div>';
+  $$('#qtr [data-s]').forEach(d=>d.onclick=()=>{const s=+d.dataset.s;clips.push({id:clips.length+1,start:s,end:s+30,title:'Nieuw fragment',hook:'',caption:'',mode:R.mode||'crop',offset:0.5,selected:true,isNew:true});
+    clips.sort((a,b)=>a.start-b.start);$('#addBox').hidden=true;renderReels()});
+}
+function renderReels(){
+  $('#reels').innerHTML=clips.map((c,i)=>`<article class="reel" data-i="${i}">
+   <div class="screen">${c.preview&&!c.isNew?`<button class="play" data-play><span class="tri">▶</span>${c.hook?`<span class="hook">${esc(c.hook)}</span>`:''}<span class="small mut">Preview laden</span></button>`:'<div class="play"><span class="small">Nieuw fragment — wordt gemaakt bij “opnieuw maken”</span></div>'}</div>
+   <div class="body">
+    <label class="row" style="margin:0 0 4px"><input type="checkbox" data-f="selected" ${c.selected?'checked':''} style="width:auto"> Meenemen</label>
+    <label>Titel</label><input data-f="title" value="${esc(c.title)}">
+    <label>Hook in beeld</label><input data-f="hook" value="${esc(c.hook)}" maxlength="60">
+    <label>Caption</label><textarea data-f="caption">${esc(c.caption)}</textarea>
+    <div class="row" style="margin-top:6px"><button class="ghost sm" data-copy>Caption kopiëren</button>${c.preview&&!c.isNew?`<button class="ghost sm" data-dl>Preview downloaden</button>`:''}</div>
+    <div class="times">
+     <div><label>Begin</label><input class="num" data-t="start" value="${fmt(c.start)}"><div class="nudge"><button class="ghost" data-n="start,-1">−1s</button><button class="ghost" data-n="start,1">+1s</button></div></div>
+     <div><label>Eind</label><input class="num" data-t="end" value="${fmt(c.end)}"><div class="nudge"><button class="ghost" data-n="end,-1">−1s</button><button class="ghost" data-n="end,1">+1s</button></div></div>
+    </div>
+    <p class="small mut num" style="margin:6px 0 0">${Math.round(c.end-c.start)} sec · <a href="${esc(yt(R.url,c.start))}" target="_blank" rel="noopener">bekijk in livestream</a></p>
+    <label>Beeld</label><select data-f="beeld">${Object.entries(OFF).map(([v,l])=>`<option value="${v}" ${c.mode!=='blur'&&Math.abs((c.offset??.5)-v)<.1?'selected':''}>${l}</option>`).join('')}<option value="blur" ${c.mode==='blur'?'selected':''}>Heel beeld, vage achtergrond</option></select>
+    <details data-trd><summary class="small">Transcript rond dit fragment</summary><div class="tr"></div></details>
+   </div></article>`).join('');
+  $$('.reel').forEach(el=>wire(el,clips[+el.dataset.i]));
+  updateBar();
+}
+function wire(el,c){
+  el.classList.toggle('off',!c.selected);
+  $$('[data-f]',el).forEach(f=>f.oninput=f.onchange=()=>{
+    const k=f.dataset.f;if(k==='selected')c.selected=f.checked;else if(k==='beeld'){if(f.value==='blur'){c.mode='blur';c.offset=null}else{c.mode='crop';c.offset=+f.value}}else c[k]=f.value;
+    el.classList.toggle('off',!c.selected);updateBar(el,c)});
+  $$('[data-t]',el).forEach(f=>f.onchange=()=>{c[f.dataset.t]=parseT(f.value);fix(c);renderReels()});
+  $$('[data-n]',el).forEach(b=>b.onclick=()=>{const [k,d]=b.dataset.n.split(',');c[k]=+c[k]+ +d;fix(c);renderReels()});
+  $('[data-copy]',el).onclick=async e=>{try{await navigator.clipboard.writeText(c.caption||'');e.target.textContent='Gekopieerd ✓'}catch{e.target.textContent='Kopiëren lukt niet'}};
+  const dl=$('[data-dl]',el);if(dl)dl.onclick=async()=>{const u=await preview(c);const a=document.createElement('a');a.href=u;a.download=(c.file||`reel-${c.id}.mp4`).replace(/\.mp4$/,'-preview.mp4');document.body.append(a);a.click();a.remove()};
+  const p=$('[data-play]',el);if(p)p.onclick=async()=>{p.querySelector('.small').textContent='Laden…';try{const u=await preview(c);const v=document.createElement('video');v.src=u;v.controls=true;v.playsInline=true;p.replaceWith(v);v.play().catch(()=>{})}catch(e){p.querySelector('.small').textContent='Laden mislukt'}};
+  $('[data-trd]',el).ontoggle=async e=>{if(!e.target.open)return;const box=$('.tr',el);box.innerHTML='<div class="mut">Laden…</div>';const tr=await loadTr();
+    const near=tr.filter(s=>s.e>c.start-40&&s.s<c.end+40);
+    box.innerHTML=near.map(s=>`<div data-s="${s.s}" data-e="${s.e}" class="${s.e>c.start&&s.s<c.end?'in':''}"><span class="t">${fmt(s.s).replace(/\.\d$/,'')}</span><span>${esc(s.t)}</span></div>`).join('');
+    $$('[data-s]',box).forEach(d=>d.onclick=()=>{$$('.pick',box).forEach(x=>x.remove());d.insertAdjacentHTML('afterend','<div class="pick"><button class="sm" data-ps>Begin hier</button><button class="sm" data-pe>Eind hier</button></div>');
+      $('[data-ps]',box).onclick=()=>{c.start=+d.dataset.s;fix(c);renderReels()};$('[data-pe]',box).onclick=()=>{c.end=+d.dataset.e+0.3;fix(c);renderReels()}})};
+}
+function fix(c){c.start=Math.max(0,Math.round(c.start*100)/100);c.end=Math.round(c.end*100)/100;if(c.end<=c.start+1)c.end=c.start+1}
+async function preview(c){
+  if(blobs[R.id+c.preview])return blobs[R.id+c.preview];
+  const b=await api(`/contents/${c.preview}?ref=${encodeURIComponent('reels/'+R.id)}`,{raw:'blob'});
+  return blobs[R.id+c.preview]=URL.createObjectURL(new Blob([b],{type:'video/mp4'}));
+}
+function updateBar(el,c){
+  if(el&&c){const o=JSON.parse(orig)[clips.indexOf(c)];el.classList.toggle('changed',!o||JSON.stringify(key(c))!==JSON.stringify(o))}
+  else $$('.reel').forEach(e=>{const cc=clips[+e.dataset.i],o=JSON.parse(orig)[+e.dataset.i];e.classList.toggle('changed',!!cc.isNew||!o||JSON.stringify(key(cc))!==JSON.stringify(o))});
+  const changed=JSON.stringify(clips.map(key))!==orig,sel=clips.filter(c=>c.selected).length,bar=$('#bar');
+  bar.hidden=!changed;
+  bar.innerHTML=`<span><b>${sel} reels</b> <span style="color:#cfd4d4" class="small">· aangepast</span></span><span class="row"><button class="ghost sm" id="undo" style="color:#fff;border-color:#4a5357">Terugzetten</button><button id="redo">Opnieuw maken</button></span>`;
+  if(!changed)return;
+  $('#undo').onclick=()=>viewResult(R.id,R);
+  $('#redo').onclick=async e=>{
+    const sel=clips.filter(c=>c.selected);if(!sel.length)return;e.target.disabled=true;e.target.textContent='Starten…';
+    const frag=JSON.stringify(sel.map(c=>({start:+c.start,end:+c.end,title:c.title,hook:c.hook,caption:c.caption,mode:c.mode==='blur'?'blur':'crop',...(c.mode!=='blur'?{offset:c.offset??0.5}:{})})));
+    const id=newId();
+    try{await dispatch(id,{youtube_link:R.url,fragmenten:frag,spraakmodel:R.model||'small',beeld:R.mode||'crop',aantal_reels:String(sel.length)});
+      remember(id,{url:R.url,started:Date.now(),label:'Bijgesteld: '+(R.title||R.id)});location.hash='a-'+id}
+    catch(err){e.target.disabled=false;e.target.textContent='Opnieuw maken';alertBar(err.message)}
+  };
+}
+function alertBar(m){$('#bar').insertAdjacentHTML('afterbegin',`<span style="color:#ffb3b3" class="small">✗ ${esc(m)}</span>`)}
+
+route();
+}
+</script>
+</body>
+</html>

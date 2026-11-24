@@ -2,7 +2,16 @@
 
 Maakt van een YouTube-livestream automatisch verticale reels (1080×1920) met grote ondertitels, een hook in beeld en een caption per reel.
 
-## Zo gebruik je het (alleen je browser nodig)
+## De app (aanrader)
+**https://malbetrieb-source.github.io/livestream-reels/** — werkt op telefoon en laptop.
+
+Link plakken, voicenote inspreken of bestand kiezen (bv. die van Remco), op *Maak reels* drukken. De app toont de voortgang, daarna per reel een preview, hook, caption (kopieerknop) en begin/eind. Bijstellen → *Opnieuw maken*: dat gaat in een paar minuten, omdat download en transcript uit de cache komen.
+
+**Eenmalig:** *Settings → Pages →* Source *Deploy from a branch*, branch `main`, map `/docs` → Save. Maak daarna in de app bij *Instellingen* een fine-grained token aan (alleen deze repo; Actions + Contents: Read and write).
+
+Hoe het werkt: de app zet de voicenote op een branch `reels/<aanvraag>`, start de workflow, en de workflow zet daar na afloop de previews (720p), captions en `resultaat.json` neer (de voicenote zelf verdwijnt dan van die branch). Oude aanvragen opruimen = de branch `reels/…` verwijderen.
+
+## Zonder app (alleen GitHub)
 1. Ga in deze repo naar **Actions** → **Maak reels van livestream** → **Run workflow**.
 2. Plak de YouTube-link, kies eventueel aantal/lengte, en klik op de groene **Run workflow**.
 3. Wacht tot het bolletje groen is (ongeveer 20–40 min bij een stream van een uur).
