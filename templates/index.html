@@ -1,0 +1,45 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Livestream → Reels</title>
+<link rel="stylesheet" href="/static/style.css"></head><body>
+<header><h1>Livestream → Reels</h1><span class="muted">hoogtepunten uit een stream halen en als verticale video's monteren</span></header>
+<main>
+<form class="card" method="post" action="/jobs" enctype="multipart/form-data" id="f">
+  <h2>Nieuwe livestream</h2>
+  <label>YouTube-link</label>
+  <input type="url" name="url" placeholder="https://www.youtube.com/watch?v=…">
+  <label>…of upload een videobestand <small>(als de stream al op je computer staat)</small></label>
+  <input type="file" name="video" accept="video/*">
+
+  <label>Briefing <small>— wat moet erin? Eén onderwerp per regel met een streepje werkt het best.</small></label>
+  <div class="inline" id="briefs"></div>
+  <textarea name="briefing" id="briefing" placeholder="- Black Friday winactie&#10;- Diepte van de Combi-Fix: 4 tot 6 cm in de wand&#10;- …"></textarea>
+  <label>Voicenote met briefing <small>(optioneel — wordt uitgeschreven en aan de briefing toegevoegd)</small></label>
+  <input type="file" name="voicenote" accept="audio/*,.opus,.ogg,.m4a">
+
+  <label>Woordenlijst <small>— merk- en productnamen, zodat de ondertiteling ze goed spelt</small></label>
+  <input type="text" name="glossary" value="Borgh, Combi-Fix, SDS, klopboor, kalkzandsteen, spouwanker, spreidstift, gatzaag, Prop-Out, Makita, Milwaukee, Hultafors, Black Friday">
+
+  <div class="row">
+    <div><label>Aantal reels</label><input type="number" name="n" value="8" min="1" max="20"></div>
+    <div><label>Min. lengte (s)</label><input type="number" name="min_len" value="20" min="5"></div>
+    <div><label>Max. lengte (s)</label><input type="number" name="max_len" value="60" min="10"></div>
+    <div><label>Spraakmodel</label><select name="model"><option value="small">small — snel</option><option value="medium">medium — nauwkeuriger</option><option value="large-v3">large-v3 — best, traag</option></select></div>
+    <div><label>Accentkleur</label><input type="text" name="accent" value="#FFD400"></div>
+    <div><label>Lettertype</label><input type="text" name="font" value="Arial Black"></div>
+  </div>
+  <p class="muted" id="engine"></p>
+  <button>Start</button>
+</form>
+
+<div class="card jobs"><h2>Eerdere streams</h2><div id="jobs"></div></div>
+</main>
+<script>
+const JOBS=__JOBS__, BRIEFS=__BRIEFINGS__, CLAUDE=__CLAUDE__;
+document.getElementById('engine').textContent = CLAUDE
+  ? 'Hoogtepunten worden gekozen door Claude (API-sleutel gevonden).'
+  : 'Geen ANTHROPIC_API_KEY gevonden: hoogtepunten worden gezocht op trefwoorden uit de briefing. Zet een sleutel in .env voor slimmere selectie, hooks en captions.';
+const b=document.getElementById('briefs');
+for(const [k,v] of Object.entries(BRIEFS)){const x=document.createElement('button');x.type='button';x.className='ghost';x.textContent='Laad: '+k;x.onclick=()=>briefing.value=v;b.appendChild(x)}
+const L={running:'bezig',review:'klaar voor review',rendering:'monteren',done:'klaar',error:'fout'};
+document.getElementById('jobs').innerHTML = JOBS.length ? JOBS.map(j=>`<a href="/jobs/${j.id}"><span>${(j.meta&&j.meta.title)||j.url||j.id}</span><span class="pill ${j.status=='error'?'err':''}">${L[j.status]||j.status}</span></a>`).join('') : '<p class="muted">Nog niets.</p>';
+document.getElementById('f').onsubmit=e=>{const f=e.target;if(!f.url.value&&!f.video.files.length){alert('Geef een YouTube-link of kies een videobestand.');e.preventDefault()}};
+</script></body></html>

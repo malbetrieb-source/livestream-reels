@@ -1,0 +1,97 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Livestream → Reels</title>
+<link rel="stylesheet" href="/static/style.css"></head><body>
+<header><h1 id="title">Livestream → Reels</h1><a href="/">← alle streams</a></header>
+<main>
+<div class="card" id="status"><h2 id="stage">…</h2><div class="bar"><i id="bar" style="width:0"></i></div><div id="msg" class="muted"></div><pre id="trace" class="muted" style="white-space:pre-wrap;font-size:12px"></pre></div>
+
+<div id="review" hidden>
+ <div class="layout">
+  <div>
+   <div class="card"><div class="inline" style="justify-content:space-between"><h2 style="margin:0">Voorgestelde fragmenten</h2>
+     <div class="inline"><button class="ghost" onclick="addClip()">+ fragment op huidige positie</button><button onclick="doRender()" id="renderBtn">Monteer geselecteerde reels</button></div></div>
+     <p class="muted" id="engineNote"></p>
+     <div id="clips"></div>
+   </div>
+  </div>
+  <div class="sticky">
+   <div class="card"><video id="v" controls preload="metadata"></video>
+     <div class="inline" style="margin-top:10px"><span class="muted" id="now">0:00.0</span></div></div>
+   <div class="card"><div class="inline" style="justify-content:space-between"><h2 style="margin:0">Transcript</h2><input type="text" id="q" placeholder="zoek…" style="width:180px"></div>
+     <div class="transcript" id="tr"></div></div>
+  </div>
+ </div>
+</div>
+
+<div class="card" id="out" hidden><h2>Reels</h2><p class="muted">Bestanden staan ook in <code>werkmap/__JID__/reels/</code>, met per reel een .txt met titel en caption.</p><div class="reels" id="reels"></div></div>
+</main>
+<script>
+const JID='__JID__'; let job=null, clips=[], segs=[], active=null, stopAt=null, poll=null;
+const $=id=>document.getElementById(id);
+const fmt=t=>{t=Math.max(0,+t);const m=Math.floor(t/60),s=(t%60).toFixed(1).padStart(4,'0');return m>=60?`${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}:${s}`:`${m}:${s}`};
+const parse=v=>{const p=String(v).trim().split(':').map(Number);return p.reduce((a,b)=>a*60+b,0)};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const STAGES={start:'Starten',briefing:'Briefing uitschrijven',download:'Video downloaden',transcribe:'Transcriberen',highlights:'Hoogtepunten zoeken',review:'Klaar voor review',render:'Reels monteren',done:'Klaar'};
+
+async function refresh(){
+  job=await (await fetch('/api/jobs/'+JID)).json();
+  $('title').textContent=(job.meta&&job.meta.title)||'Livestream → Reels';
+  $('stage').textContent=job.status=='error'?'Er ging iets mis':(STAGES[job.stage]||job.stage);
+  $('bar').style.width=(job.progress*100)+'%'; $('msg').textContent=job.message||''; $('trace').textContent=job.status=='error'?(job.trace||''):'';
+  const busy=job.status=='running'||job.status=='rendering';
+  $('status').hidden = !busy && job.status!='error';
+  if(job.status!='running' && job.status!='error' && $('review').hidden){ initReview(); }
+  $('renderBtn').disabled=busy;
+  if(job.renders&&job.renders.length){showRenders()}
+  if(!busy&&poll){clearInterval(poll);poll=null}
+  if(busy&&!poll){poll=setInterval(refresh,1500)}
+}
+async function initReview(){
+  $('review').hidden=false; clips=job.clips;
+  $('engineNote').textContent = job.engine=='claude' ? 'Gekozen door Claude op basis van transcript en briefing.' : 'Gekozen op trefwoorden uit de briefing (offline). Controleer de grenzen even met de speler.';
+  $('v').src='/media/'+JID+'/'+job.source;
+  segs=(await (await fetch('/api/jobs/'+JID+'/transcript')).json()).segments; drawTr(); drawClips();
+}
+function excerpt(c){return segs.filter(s=>s.end>c.start&&s.start<c.end).map(s=>s.text).join(' ')}
+function drawClips(){
+  $('clips').innerHTML=clips.map((c,i)=>`
+  <div class="clip ${c.selected?'':'off'} ${active===i?'active':''}" id="c${i}">
+    <div class="head"><input type="checkbox" ${c.selected?'checked':''} onchange="set(${i},'selected',this.checked)">
+      <input type="text" value="${esc(c.title)}" onchange="set(${i},'title',this.value)">
+      <span class="pill">${(c.end-c.start).toFixed(0)}s</span></div>
+    <div class="times">
+      <button class="ghost" onclick="play(${i})">▶ speel</button>
+      start <input type="text" value="${fmt(c.start)}" onchange="set(${i},'start',parse(this.value))">
+      <button class="ghost" title="start = positie speler" onclick="set(${i},'start',+v.currentTime.toFixed(2))">⇤ hier</button>
+      eind <input type="text" value="${fmt(c.end)}" onchange="set(${i},'end',parse(this.value))">
+      <button class="ghost" title="eind = positie speler" onclick="set(${i},'end',+v.currentTime.toFixed(2))">hier ⇥</button>
+    </div>
+    <div class="times">beeld <select onchange="set(${i},'mode',this.value)"><option value="crop" ${c.mode!='blur'?'selected':''}>bijsnijden 9:16</option><option value="blur" ${c.mode=='blur'?'selected':''}>heel beeld + vage achtergrond</option></select>
+      ${c.mode!='blur'?`uitsnede links <input type="range" min="0" max="1" step="0.05" value="${c.offset??0.5}" style="width:120px" onchange="set(${i},'offset',+this.value)"> rechts`:''}</div>
+    <label>Hook in beeld (eerste 3 s)</label><input type="text" value="${esc(c.hook)}" onchange="set(${i},'hook',this.value)">
+    <label>Caption</label><textarea onchange="set(${i},'caption',this.value)">${esc(c.caption)}</textarea>
+    <div class="excerpt">${esc(excerpt(c))}</div>
+    ${c.reason?`<div class="muted" style="font-size:12px;margin-top:6px">${esc(c.topic||'')} — ${esc(c.reason)}</div>`:''}
+  </div>`).join('');
+}
+function set(i,k,val){clips[i][k]=val; if(k=='start'||k=='end'){if(clips[i].end<=clips[i].start)clips[i].end=clips[i].start+15} drawClips(); saveClips()}
+let saveT; function saveClips(){clearTimeout(saveT);saveT=setTimeout(()=>fetch('/api/jobs/'+JID+'/clips',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clips})}),400)}
+function play(i){active=i;drawClips();v.currentTime=clips[i].start;stopAt=clips[i].end;v.play()}
+v.ontimeupdate=()=>{$('now').textContent=fmt(v.currentTime);if(stopAt&&v.currentTime>=stopAt){v.pause();stopAt=null}
+  const cur=[...document.querySelectorAll('#tr div')].find(d=>+d.dataset.s<=v.currentTime&&+d.dataset.e>v.currentTime);
+  document.querySelectorAll('#tr div').forEach(d=>d.style.background='');if(cur)cur.style.background='#e7efee'};
+v.onseeking=()=>{if(stopAt&&(v.currentTime<clips[active]?.start-1))stopAt=null};
+function addClip(){const t=+v.currentTime.toFixed(2);const id=Math.max(0,...clips.map(c=>c.id))+1;
+  clips.push({id,start:t,end:t+30,title:'Nieuw fragment',hook:'',caption:'',selected:true,mode:'crop',offset:0.5});
+  clips.sort((a,b)=>a.start-b.start);drawClips();saveClips()}
+function drawTr(){const q=$('q').value.toLowerCase();
+  $('tr').innerHTML=segs.filter(s=>!q||s.text.toLowerCase().includes(q)).map(s=>`<div data-s="${s.start}" data-e="${s.end}" onclick="v.currentTime=${s.start};stopAt=null;v.play()"><b>${fmt(s.start)}</b>${esc(s.text)}</div>`).join('')}
+$('q').oninput=drawTr;
+async function doRender(){if(!clips.some(c=>c.selected))return alert('Selecteer minstens één fragment.');
+  await fetch('/api/jobs/'+JID+'/render',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clips})});
+  $('out').hidden=true; refresh()}
+function showRenders(){$('out').hidden=false;
+  $('reels').innerHTML=job.renders.map(r=>`<div class="r"><video controls preload="metadata" src="/media/${JID}/reels/${encodeURIComponent(r.mp4)}#t=0.5"></video>
+   <div style="margin-top:6px"><b>${esc(r.title)}</b></div>
+   <a href="/media/${JID}/reels/${encodeURIComponent(r.mp4)}" download>download mp4</a> · <a href="/media/${JID}/reels/${encodeURIComponent(r.txt)}" target="_blank">caption</a></div>`).join('')}
+refresh();
+</script></body></html>

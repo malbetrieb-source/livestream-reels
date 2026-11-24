@@ -1,0 +1,8 @@
+werkmap/
+work/
+output/
+.venv/
+__pycache__/
+.env
+cookies.txt
+*.zip

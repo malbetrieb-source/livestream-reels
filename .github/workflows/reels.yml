@@ -1,0 +1,98 @@
+name: Maak reels van livestream
+
+on:
+  workflow_dispatch:
+    inputs:
+      youtube_link:
+        description: "YouTube-link van de livestream"
+        required: true
+      briefing:
+        description: "Briefing-bestand (in de map briefings/), of leeg laten"
+        default: "briefings/borgh-livestream-steen-en-dakgoot.md"
+      extra_instructies:
+        description: "Extra wensen (optioneel), bv. 'vooral korte tips, niet de intro'"
+        default: ""
+      aantal_reels:
+        description: "Aantal reels"
+        default: "8"
+      min_lengte:
+        description: "Minimale lengte per reel (seconden)"
+        default: "20"
+      max_lengte:
+        description: "Maximale lengte per reel (seconden)"
+        default: "60"
+      beeld:
+        description: "Beeld: bijsnijden naar 9:16, of heel beeld met vage achtergrond"
+        type: choice
+        options: [crop, blur]
+        default: crop
+      fragmenten:
+        description: "Zelf fragmenten kiezen (optioneel): 12:05-12:48 Titel; 1:02:10-1:02:55 Titel"
+        default: ""
+      spraakmodel:
+        description: "Spraakherkenning (medium = nauwkeuriger maar trager)"
+        type: choice
+        options: [small, medium]
+        default: small
+      accentkleur:
+        description: "Kleur van het actieve woord en de hook"
+        default: "#FFD400"
+
+jobs:
+  reels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Video-ID bepalen
+        id: vid
+        run: |
+          ID=$(echo "${{ inputs.youtube_link }}" | grep -oE '(v=|youtu\.be/|live/|shorts/)[A-Za-z0-9_-]{11}' | head -1 | grep -oE '[A-Za-z0-9_-]{11}$')
+          echo "id=${ID:-onbekend}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Programma's installeren
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-montserrat > /dev/null
+          pip install -q -r requirements.txt
+
+      - name: Cache (download + transcript)
+        uses: actions/cache@v4
+        with:
+          path: |
+            work
+            ~/.cache/huggingface
+          key: werk-${{ steps.vid.outputs.id }}-${{ inputs.spraakmodel }}
+
+      - name: Reels maken
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+          IN_URL: ${{ inputs.youtube_link }}
+          IN_BRIEFING: ${{ inputs.briefing }}
+          IN_EXTRA: ${{ inputs.extra_instructies }}
+          IN_FRAG: ${{ inputs.fragmenten }}
+        run: |
+          if [ -n "$YT_COOKIES" ]; then printf '%s\n' "$YT_COOKIES" > cookies.txt; export YTDLP_COOKIES=cookies.txt; fi
+          python run.py --url "$IN_URL" --briefing "$IN_BRIEFING" --extra "$IN_EXTRA" \
+            --glossary "$(tr '\n' ',' < woordenlijst.txt)" \
+            --n "${{ inputs.aantal_reels }}" --min-len "${{ inputs.min_lengte }}" --max-len "${{ inputs.max_lengte }}" \
+            --model "${{ inputs.spraakmodel }}" --mode "${{ inputs.beeld }}" --accent "${{ inputs.accentkleur }}" \
+            --fragmenten "$IN_FRAG" --work work --out output
+
+      - name: Reels klaarzetten om te downloaden
+        uses: actions/upload-artifact@v4
+        with:
+          name: reels-${{ steps.vid.outputs.id }}-run${{ github.run_number }}
+          path: output
+          retention-days: 30
