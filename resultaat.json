@@ -1,0 +1,49 @@
+{
+ "id": "test-app-1",
+ "url": "https://www.youtube.com/watch?v=rjnw5P5Cxho",
+ "title": "Gratis gatzagenset weggeven (Black Friday actie) + steenwol test |LIVE",
+ "engine": "handmatig",
+ "duration": 3504.727075,
+ "run_id": "45403926737",
+ "run_url": "https://github.com/malbetrieb-source/livestream-reels/actions/runs/45403926737",
+ "artifact": "reels-rjnw5P5Cxho-run9",
+ "voicenote": "",
+ "extra": "",
+ "model": "small",
+ "mode": "crop",
+ "created": "2026-11-24T13:31:05Z",
+ "clips": [
+  {
+   "start": 281.0,
+   "end": 312.0,
+   "title": "Winactie 27 nov",
+   "hook": "Win Makita-gereedschap",
+   "caption": "Test-caption",
+   "topic": "handmatig",
+   "reason": "Bijgesteld in de app",
+   "mode": "crop",
+   "offset": 0.5,
+   "id": 1,
+   "selected": true,
+   "file": "01_winactie-27-nov.mp4",
+   "txt": "01_winactie-27-nov.txt",
+   "preview": "previews/01.mp4"
+  },
+  {
+   "start": 3345.0,
+   "end": 3380.0,
+   "title": "Black Friday-koffer",
+   "hook": "Koffer voor €129",
+   "caption": "",
+   "topic": "handmatig",
+   "reason": "Bijgesteld in de app",
+   "mode": "blur",
+   "id": 2,
+   "selected": true,
+   "offset": 0.5,
+   "file": "02_black-friday-koffer.mp4",
+   "txt": "02_black-friday-koffer.txt",
+   "preview": "previews/02.mp4"
+  }
+ ]
+}
