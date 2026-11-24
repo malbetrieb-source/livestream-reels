@@ -98,8 +98,12 @@ def transcribe_faster_whisper(wav, progress, model_size="small", glossary=""):
 
     progress(0.0, f"Spraakmodel '{model_size}' laden (eerste keer wordt het gedownload)")
     model = WhisperModel(model_size, device="auto", compute_type="int8")
+    import wave
+    import numpy as np
+    with wave.open(str(wav)) as w:  # zelf inlezen: omzeilt PyAV-versieproblemen
+        audio = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
     segments, info = model.transcribe(
-        str(wav), language="nl", word_timestamps=True, vad_filter=True,
+        audio, language="nl", word_timestamps=True, vad_filter=True,
         initial_prompt=(f"Woorden die voorkomen: {glossary}." if glossary else None),
     )
     out = []
