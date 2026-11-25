@@ -1,0 +1,52 @@
+{
+ "id": "20261125-1013-o7xn",
+ "url": "https://www.youtube.com/watch?v=rjnw5P5Cxho",
+ "title": "Gratis gatzagenset weggeven (Black Friday actie) + steenwol test |LIVE",
+ "engine": "offline",
+ "duration": 3504.727075,
+ "run_id": "45583333936",
+ "run_url": "https://github.com/malbetrieb-source/livestream-reels/actions/runs/45583333936",
+ "artifact": "reels-rjnw5P5Cxho-run13",
+ "voicenote": "",
+ "extra": "Isolatie in de brand steken",
+ "briefing": "Briefing Remco (Borgh) — livestream van donderdag: winactie, steen monteren en dakgoot.\n\n- Black Friday winactie: volgende week vrijdag livestream waarin we prijzen weggeven, gesponsord door Makita, Milwaukee en Hultafors (plus bijdrage Borgh). Mensen moeten gaan kijken.\n- Brandkwasten: de verschillende soorten, Remco achter de tafel (\"dit is de ...\").\n- Monteren: zo wil je het niet gemonteerd hebben, maar zo. Fout vs goed bij de muur.\n- Boren in kalkzandsteen: boven met SDS-boor, onder met klopboor van 8 mm. SDS-boren ruimen altijd, waardoor de Combi-Fix los gaat zitten.\n- Combi-Fix diepte: altijd 4, 5 of 6 centimeter in de wand, door de isolatie heen. Nooit laten klemmen of de isolatie naar binnen trekken.\n- Spreidstift of spouwanker: spreidstift om in de isolatie vast te zetten, spouwanker om in te metselen als er nog een muur voor komt.\n- Dakgoot boren met gatzaag in zink en in kunststof; vraag uit de community van Klaas.\n- Accessoires: pin en pin XL — wanneer gebruik je welke? Marco legt het uit.\n\n\nExtra instructies:\nIsolatie in de brand steken",
+ "model": "small",
+ "mode": "crop",
+ "created": "2026-11-25T09:15:25Z",
+ "clips": [
+  {
+   "start": 246.29,
+   "end": 301.12,
+   "topic": "Black Friday winactie",
+   "title": "Black Friday winactie",
+   "hook": "Black Friday winactie",
+   "caption": "",
+   "reason": "Match op briefing-onderwerp",
+   "source": "offline",
+   "id": 1,
+   "selected": true,
+   "mode": "crop",
+   "offset": 0.5,
+   "file": "01_black-friday-winactie.mp4",
+   "txt": "01_black-friday-winactie.txt",
+   "preview": "previews/01.mp4"
+  },
+  {
+   "start": 427.61,
+   "end": 448.56,
+   "topic": "Brandkwasten",
+   "title": "Brandkwasten",
+   "hook": "Brandkwasten",
+   "caption": "",
+   "reason": "Match op briefing-onderwerp",
+   "source": "offline",
+   "id": 2,
+   "selected": true,
+   "mode": "crop",
+   "offset": 0.5,
+   "file": "02_brandkwasten.mp4",
+   "txt": "02_brandkwasten.txt",
+   "preview": "previews/02.mp4"
+  }
+ ]
+}
